@@ -1,3 +1,4 @@
+import AppKit
 import GuardDogCore
 import SwiftUI
 
@@ -23,6 +24,18 @@ struct GuardDogRootView: View {
         } message: {
             Text(model.errorMessage ?? "Unknown error")
         }
+        .sheet(isPresented: $model.showingCLIPicker) {
+            CLIPickerView(
+                onSelect: { path in
+                    Task {
+                        await model.addProtectedToolAtPath(path)
+                    }
+                },
+                onCancel: {
+                    model.showingCLIPicker = false
+                }
+            )
+        }
         .overlay {
             if model.isLoading {
                 ProgressView("Loading policy state…")
@@ -30,6 +43,7 @@ struct GuardDogRootView: View {
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
             }
         }
+        .background(WindowConfigurationView())
     }
 
     private var sidebar: some View {
@@ -56,6 +70,31 @@ struct GuardDogRootView: View {
                         }
                     }
                     .toggleStyle(.switch)
+
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(model.extensionStatus.isRunning ? Color.green : Color.red)
+                            .frame(width: 8, height: 8)
+                        Text(model.extensionStatus.isRunning ? "Enforcement active" : "Enforcement inactive")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        Spacer()
+
+                        Button(model.extensionStatus.isRunning ? "Active" : "Activate") {
+                            model.activateExtension()
+                        }
+                        .font(.caption)
+                        .buttonStyle(.bordered)
+                        .disabled(model.extensionStatus.isRunning)
+                    }
+
+                    if case .failed(let msg) = model.extensionStatus {
+                        Text(msg)
+                            .font(.caption2)
+                            .foregroundStyle(.red)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
 
                     Button {
                         Task {
@@ -103,9 +142,7 @@ struct GuardDogRootView: View {
                 }
 
                 Button {
-                    Task {
-                        await model.addProtectedTool()
-                    }
+                    model.addProtectedTool()
                 } label: {
                     Label("Add Protected Tool", systemImage: "plus")
                 }
@@ -301,6 +338,24 @@ struct GuardDogRootView: View {
                     }
                 }
             }
+        }
+    }
+}
+
+private struct WindowConfigurationView: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        configureWindow(for: view)
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        configureWindow(for: nsView)
+    }
+
+    private func configureWindow(for view: NSView) {
+        DispatchQueue.main.async {
+            view.window?.isMovableByWindowBackground = false
         }
     }
 }

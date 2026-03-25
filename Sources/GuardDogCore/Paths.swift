@@ -4,7 +4,8 @@ enum Paths {
     static func normalized(_ path: String) -> String {
         let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return trimmed }
-        return NSString(string: trimmed).standardizingPath
+        let standardized = NSString(string: trimmed).standardizingPath
+        return URL(fileURLWithPath: standardized).resolvingSymlinksInPath().path
     }
 
     static func applicationSupportDirectory() throws -> URL {

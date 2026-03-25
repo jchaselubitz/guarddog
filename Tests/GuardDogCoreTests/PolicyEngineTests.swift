@@ -56,6 +56,34 @@ final class PolicyEngineTests: XCTestCase {
         XCTAssertEqual(result.decision, .allow)
         XCTAssertEqual(result.matchedCallerID, caller.id)
     }
+
+    func testProtectedToolSymlinkMatchesCanonicalExecPath() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+
+        let realToolURL = directory.appendingPathComponent("Cellar/codex/bin/codex")
+        try FileManager.default.createDirectory(at: realToolURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        _ = FileManager.default.createFile(atPath: realToolURL.path, contents: Data(), attributes: nil)
+
+        let linkedToolURL = directory.appendingPathComponent("bin/codex")
+        try FileManager.default.createDirectory(at: linkedToolURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(atPath: linkedToolURL.path, withDestinationPath: realToolURL.path)
+
+        let tool = ProtectedTool(path: linkedToolURL.path)
+        let engine = PolicyEngine()
+        let result = engine.evaluate(
+            request: ExecRequest(
+                toolPath: realToolURL.path,
+                caller: CallerIdentity(bundleID: nil, teamID: nil, executablePath: "/bin/zsh")
+            ),
+            settings: ProtectionSettings(isEnabled: true),
+            protectedTools: [tool],
+            allowedCallers: []
+        )
+
+        XCTAssertEqual(result.decision, .deny)
+        XCTAssertEqual(result.reason, "caller is not on the allowlist for this tool")
+    }
 }
 
 final class FilePolicyStoreTests: XCTestCase {

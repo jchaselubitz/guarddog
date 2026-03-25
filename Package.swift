@@ -31,11 +31,23 @@ let package = Package(
         ),
         .target(
             name: "GuardDogExtension",
-            dependencies: ["GuardDogCore"]
+            dependencies: ["GuardDogCore"],
+            linkerSettings: [
+                .linkedLibrary("EndpointSecurity"),
+                .linkedLibrary("bsm"),
+            ]
         ),
         .executableTarget(
             name: "GuardDogApp",
-            dependencies: ["GuardDogCore"]
+            dependencies: ["GuardDogCore", "GuardDogExtension"]
+        ),
+        .executableTarget(
+            name: "GuardDogESProbe",
+            dependencies: ["GuardDogExtension"],
+            linkerSettings: [
+                .linkedLibrary("EndpointSecurity"),
+                .linkedLibrary("bsm"),
+            ]
         ),
         .executableTarget(
             name: "GuardDog",

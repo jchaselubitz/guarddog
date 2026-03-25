@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import GuardDogCore
+import GuardDogExtension
 import SwiftUI
 
 @MainActor
@@ -14,6 +15,77 @@ final class GuardDogAppModel {
     var isLoading = false
     var isMutating = false
     var errorMessage: String?
+    var showingCLIPicker = false
+    var extensionStatus: ExtensionStatus = .stopped
+
+    private var endpointExtension: EndpointSecurityExtension?
+
+    enum ExtensionStatus: Equatable {
+        case stopped
+        case running
+        case failed(String)
+
+        var displayText: String {
+            switch self {
+            case .stopped: "Stopped"
+            case .running: "Enforcing"
+            case .failed(let msg): "Error: \(msg)"
+            }
+        }
+
+        var isRunning: Bool { self == .running }
+    }
+
+    func activateExtension() {
+        guard endpointExtension == nil else { return }
+
+        // es_new_client sends SIGKILL when the process lacks a valid (non-ad-hoc)
+        // signature with the ES entitlement AND a provisioning profile from Apple.
+        // We probe in a child process first so the main app is never killed.
+        guard Self.probeEndpointSecurityAccess() else {
+            extensionStatus = .failed(
+                "Cannot create an EndpointSecurity client. "
+                + "This requires a Developer ID signature with a provisioning profile "
+                + "that includes com.apple.developer.endpoint-security.client "
+                + "(request at developer.apple.com), or running with SIP disabled."
+            )
+            return
+        }
+
+        do {
+            let ext = try EndpointSecurityExtension()
+            try ext.activate()
+            endpointExtension = ext
+            extensionStatus = .running
+        } catch {
+            extensionStatus = .failed(error.localizedDescription)
+        }
+    }
+
+    /// Spawns the GuardDogESProbe helper to test whether `es_new_client`
+    /// succeeds. The probe is a separate executable so if the kernel sends
+    /// SIGKILL (ad-hoc signature + SIP enabled), only the probe dies — not
+    /// the main app.
+    private static func probeEndpointSecurityAccess() -> Bool {
+        // Look for the probe binary next to the app binary
+        guard let appURL = Bundle.main.executableURL else { return false }
+        let probeURL = appURL.deletingLastPathComponent().appendingPathComponent("GuardDogESProbe")
+
+        guard FileManager.default.isExecutableFile(atPath: probeURL.path) else { return false }
+
+        let process = Process()
+        process.executableURL = probeURL
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+
+        do {
+            try process.run()
+            process.waitUntilExit()
+            return process.terminationStatus == 0
+        } catch {
+            return false
+        }
+    }
 
     func refresh() async {
         await runLoad {
@@ -46,18 +118,15 @@ final class GuardDogAppModel {
         }
     }
 
-    func addProtectedTool() async {
-        guard let url = openFilePanel(
-            title: "Choose a Protected Tool",
-            prompt: "Protect Tool",
-            message: "Select a CLI executable to protect."
-        ) else {
-            return
-        }
+    func addProtectedTool() {
+        showingCLIPicker = true
+    }
 
+    func addProtectedToolAtPath(_ path: String) async {
+        showingCLIPicker = false
         await runMutation {
             let client = try PolicyClientFactory.make()
-            let tool = try client.addProtectedTool(path: url.path, hash: nil, signingIdentity: nil)
+            let tool = try client.addProtectedTool(path: path, hash: nil, signingIdentity: nil)
             try loadState(using: client)
             selectedToolID = tool.id
         }
