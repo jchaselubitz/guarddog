@@ -168,6 +168,11 @@ Map user-friendly app selection → stable identity
 - XPC (preferred for macOS native)
 - Unix domain sockets (simpler fallback)
 
+**Repo implementation**
+- `GuardDogCore` now owns the shared IPC contract
+- Unix socket daemon bootstrap for the current repo layout
+- Locked file-store fallback when the daemon socket is unavailable
+
 ---
 
 ### 8. Event Logging

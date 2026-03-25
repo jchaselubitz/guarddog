@@ -1,15 +1,49 @@
 // swift-tools-version: 6.2
-// The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
 
 let package = Package(
     name: "GuardDog",
-    targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
-        .executableTarget(
-            name: "GuardDog"
+    platforms: [
+        .macOS(.v14)
+    ],
+    products: [
+        .library(
+            name: "GuardDogCore",
+            targets: ["GuardDogCore"]
         ),
+        .library(
+            name: "GuardDogExtension",
+            targets: ["GuardDogExtension"]
+        ),
+        .executable(
+            name: "GuardDogApp",
+            targets: ["GuardDogApp"]
+        ),
+        .executable(
+            name: "GuardDog",
+            targets: ["GuardDog"]
+        )
+    ],
+    targets: [
+        .target(
+            name: "GuardDogCore"
+        ),
+        .target(
+            name: "GuardDogExtension",
+            dependencies: ["GuardDogCore"]
+        ),
+        .executableTarget(
+            name: "GuardDogApp",
+            dependencies: ["GuardDogCore"]
+        ),
+        .executableTarget(
+            name: "GuardDog",
+            dependencies: ["GuardDogCore"]
+        ),
+        .testTarget(
+            name: "GuardDogCoreTests",
+            dependencies: ["GuardDogCore"]
+        )
     ]
 )
