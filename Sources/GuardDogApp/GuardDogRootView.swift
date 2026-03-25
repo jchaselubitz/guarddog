@@ -50,7 +50,7 @@ struct GuardDogRootView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(model.protectionEnabled ? "Enabled" : "Disabled")
                                 .font(.title3.weight(.semibold))
-                            Text(model.protectionEnabled ? "Rules will be enforced for protected tools." : "All protected tools will be allowed until re-enabled.")
+                            Text(model.protectionEnabled ? "Rules are enforced." : "Protection disabled.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -112,6 +112,7 @@ struct GuardDogRootView: View {
             }
         }
         .listStyle(.sidebar)
+        .navigationSplitViewColumnWidth(min: 250, ideal: 250, max: 250)
         .safeAreaInset(edge: .bottom) {
             if model.isMutating {
                 HStack(spacing: 8) {
