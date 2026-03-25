@@ -1,1008 +1,1424 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GuardDog — Protect Your AI CLI Tools</title>
-  <meta name="description" content="GuardDog controls which macOS apps can execute your AI CLI tools. Block unauthorized callers at the OS level using Apple's Endpoint Security framework." />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg-0: #060709;
-      --bg-1: #0b0d12;
-      --bg-2: #111318;
-      --bg-3: #181b22;
-      --amber-dim: #92600a;
-      --amber: #f59e0b;
-      --amber-bright: #fbbf24;
-      --amber-glow: rgba(245, 158, 11, 0.18);
-      --amber-border: rgba(245, 158, 11, 0.22);
-      --orange: #fb923c;
-      --green: #22c55e;
-      --green-dim: rgba(34, 197, 94, 0.15);
-      --red: #ef4444;
-      --red-dim: rgba(239, 68, 68, 0.15);
-      --text-0: #f8fafc;
-      --text-1: #cbd5e1;
-      --text-2: #94a3b8;
-      --text-3: #64748b;
-      --border: rgba(255,255,255,0.08);
-      --border-hover: rgba(255,255,255,0.14);
-    }
-
-    html { scroll-behavior: smooth; }
-
-    body {
-      font-family: 'Space Grotesk', sans-serif;
-      background: var(--bg-0);
-      color: var(--text-0);
-      min-height: 100vh;
-      overflow-x: hidden;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    /* ── Layout ─────────────────────────────────────── */
-    .container { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
-    .container-wide { max-width: 1300px; margin: 0 auto; padding: 0 1.5rem; }
-
-    /* ── Nav ────────────────────────────────────────── */
-    nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 50;
-      background: rgba(6, 7, 9, 0.8);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-    }
-
-    nav .inner {
-      max-width: 1100px; margin: 0 auto;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 1.5rem; height: 60px;
-    }
-
-    .nav-logo {
-      display: flex; align-items: center; gap: 0.6rem;
-      font-weight: 700; font-size: 1.1rem; color: var(--text-0);
-      text-decoration: none;
-    }
-
-    .nav-logo .paw {
-      width: 32px; height: 32px;
-      background: linear-gradient(135deg, var(--amber), var(--orange));
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 16px;
-    }
-
-    .nav-links {
-      display: flex; align-items: center; gap: 1.75rem; list-style: none;
-    }
-
-    .nav-links a {
-      color: var(--text-2); text-decoration: none; font-size: 0.9rem;
-      font-weight: 500; transition: color 0.2s;
-    }
-    .nav-links a:hover { color: var(--text-0); }
-
-    .nav-cta {
-      background: var(--amber);
-      color: #000 !important;
-      padding: 0.45rem 1rem;
-      border-radius: 8px;
-      font-weight: 600 !important;
-      font-size: 0.85rem !important;
-      transition: background 0.2s !important;
-    }
-    .nav-cta:hover { background: var(--amber-bright) !important; }
-
-    /* ── Hero ───────────────────────────────────────── */
-    .hero {
-      padding: 9rem 0 6rem;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .hero-glow {
-      position: absolute; inset: 0; pointer-events: none;
-      background: radial-gradient(ellipse 800px 500px at 50% 20%, rgba(245,158,11,0.1) 0%, transparent 70%);
-    }
-
-    .hero-badge {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      background: rgba(245,158,11,0.08);
-      border: 1px solid var(--amber-border);
-      border-radius: 999px;
-      padding: 0.35rem 1rem;
-      font-size: 0.8rem; font-weight: 500;
-      color: var(--amber-bright);
-      margin-bottom: 2rem;
-      font-family: 'IBM Plex Mono', monospace;
-      letter-spacing: 0.02em;
-    }
-
-    .hero-badge .dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: var(--amber); flex-shrink: 0;
-      animation: pulse 2s ease-in-out infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-
-    .hero h1 {
-      font-size: clamp(2.8rem, 6vw, 5rem);
-      font-weight: 700;
-      line-height: 1.08;
-      letter-spacing: -0.03em;
-      margin-bottom: 1.5rem;
-      max-width: 800px;
-      margin-left: auto; margin-right: auto;
-    }
-
-    .hero h1 .accent {
-      background: linear-gradient(90deg, var(--amber), var(--orange));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .hero-sub {
-      font-size: 1.15rem;
-      color: var(--text-2);
-      max-width: 560px;
-      margin: 0 auto 2.5rem;
-      line-height: 1.65;
-      font-weight: 400;
-    }
-
-    .hero-actions {
-      display: flex; align-items: center; justify-content: center;
-      gap: 1rem; flex-wrap: wrap;
-    }
-
-    .btn-primary {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      background: var(--amber);
-      color: #000;
-      font-weight: 600; font-size: 0.95rem;
-      padding: 0.75rem 1.75rem;
-      border-radius: 10px;
-      text-decoration: none;
-      transition: background 0.2s, transform 0.15s;
-    }
-    .btn-primary:hover { background: var(--amber-bright); transform: translateY(-1px); }
-
-    .btn-secondary {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      background: transparent;
-      color: var(--text-1);
-      font-weight: 500; font-size: 0.95rem;
-      padding: 0.75rem 1.5rem;
-      border-radius: 10px;
-      border: 1px solid var(--border-hover);
-      text-decoration: none;
-      transition: border-color 0.2s, color 0.2s, transform 0.15s;
-    }
-    .btn-secondary:hover {
-      border-color: var(--amber-border);
-      color: var(--text-0);
-      transform: translateY(-1px);
-    }
-
-    .hero-platform {
-      margin-top: 3rem;
-      color: var(--text-3); font-size: 0.8rem;
-      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-    }
-
-    .platform-badge {
-      display: inline-flex; align-items: center; gap: 0.35rem;
-      padding: 0.25rem 0.65rem;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: 0.75rem; color: var(--text-2);
-      font-family: 'IBM Plex Mono', monospace;
-    }
-
-    /* ── UI Demo / Event Log ────────────────────────── */
-    .demo-wrap {
-      padding: 2rem 0 5rem;
-    }
-
-    .demo-window {
-      background: var(--bg-1);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      overflow: hidden;
-      max-width: 860px;
-      margin: 0 auto;
-      box-shadow:
-        0 0 0 1px var(--border),
-        0 40px 100px -30px rgba(0,0,0,0.7),
-        0 0 80px -20px rgba(245,158,11,0.08);
-    }
-
-    .window-bar {
-      display: flex; align-items: center; gap: 0.5rem;
-      padding: 0.85rem 1.25rem;
-      background: var(--bg-2);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .window-dot { width: 12px; height: 12px; border-radius: 50%; }
-    .window-dot.close { background: #ff5f57; }
-    .window-dot.min { background: #febc2e; }
-    .window-dot.max { background: #28c840; }
-
-    .window-title {
-      flex: 1; text-align: center;
-      font-size: 0.78rem; font-weight: 500;
-      color: var(--text-3);
-      font-family: 'IBM Plex Mono', monospace;
-    }
-
-    .window-body {
-      display: grid; grid-template-columns: 200px 1fr;
-    }
-
-    .sidebar {
-      border-right: 1px solid var(--border);
-      padding: 1rem 0;
-    }
-
-    .sidebar-label {
-      font-size: 0.65rem;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--text-3);
-      padding: 0 1rem 0.5rem;
-    }
-
-    .sidebar-item {
-      display: flex; align-items: center; gap: 0.6rem;
-      padding: 0.55rem 1rem;
-      font-size: 0.82rem; color: var(--text-2);
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-
-    .sidebar-item.active {
-      background: rgba(245,158,11,0.07);
-      color: var(--amber-bright);
-    }
-
-    .sidebar-item .icon { font-size: 0.95rem; }
-
-    .main-panel { padding: 1.25rem; }
-
-    .panel-header {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 1rem;
-    }
-
-    .panel-title {
-      font-size: 0.9rem; font-weight: 600; color: var(--text-0);
-    }
-
-    .live-badge {
-      display: flex; align-items: center; gap: 0.4rem;
-      font-size: 0.7rem; font-family: 'IBM Plex Mono', monospace;
-      color: var(--green); background: var(--green-dim);
-      padding: 0.2rem 0.55rem; border-radius: 999px;
-    }
-    .live-badge .dot {
-      width: 5px; height: 5px; border-radius: 50%;
-      background: var(--green);
-      animation: pulse 2s ease-in-out infinite;
-    }
-
-    .event-list { display: flex; flex-direction: column; gap: 0.5rem; }
-
-    .event-row {
-      display: grid; grid-template-columns: auto 1fr 1fr auto;
-      align-items: center; gap: 0.75rem;
-      padding: 0.65rem 0.85rem;
-      background: var(--bg-2);
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      font-size: 0.78rem;
-    }
-
-    .verdict {
-      display: inline-flex; align-items: center; gap: 0.3rem;
-      padding: 0.2rem 0.55rem; border-radius: 6px;
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 0.7rem; font-weight: 500;
-    }
-    .verdict.allow { background: var(--green-dim); color: var(--green); }
-    .verdict.block { background: var(--red-dim); color: var(--red); }
-
-    .event-cli { color: var(--amber-bright); font-family: 'IBM Plex Mono', monospace; }
-    .event-caller { color: var(--text-1); }
-    .event-time { color: var(--text-3); font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; }
-
-    /* ── Problem ────────────────────────────────────── */
-    .section { padding: 5rem 0; }
-
-    .section-label {
-      font-size: 0.75rem;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--amber);
-      margin-bottom: 0.75rem;
-      font-family: 'IBM Plex Mono', monospace;
-    }
-
-    .section-title {
-      font-size: clamp(1.75rem, 3.5vw, 2.5rem);
-      font-weight: 700;
-      letter-spacing: -0.025em;
-      line-height: 1.15;
-      margin-bottom: 1rem;
-    }
-
-    .section-sub {
-      font-size: 1.05rem;
-      color: var(--text-2);
-      line-height: 1.65;
-      max-width: 560px;
-    }
-
-    .problem-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 1px;
-      background: var(--border);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      overflow: hidden;
-      margin-top: 3rem;
-    }
-
-    .problem-card {
-      background: var(--bg-1);
-      padding: 2rem;
-    }
-
-    .problem-card .icon-wrap {
-      width: 44px; height: 44px;
-      background: rgba(239,68,68,0.12);
-      border: 1px solid rgba(239,68,68,0.2);
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.2rem;
-      margin-bottom: 1rem;
-    }
-
-    .problem-card h3 {
-      font-size: 0.95rem; font-weight: 600;
-      color: var(--text-0); margin-bottom: 0.5rem;
-    }
-
-    .problem-card p {
-      font-size: 0.85rem; color: var(--text-2); line-height: 1.6;
-    }
-
-    /* ── How It Works ───────────────────────────────── */
-    .how-bg {
-      background: var(--bg-1);
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .flow {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-      margin-top: 3rem;
-      position: relative;
-    }
-
-    .flow::before {
-      content: '';
-      position: absolute;
-      left: 24px; top: 0; bottom: 0;
-      width: 1px;
-      background: linear-gradient(to bottom, transparent, var(--amber-border) 10%, var(--amber-border) 90%, transparent);
-    }
-
-    .flow-step {
-      display: flex; align-items: flex-start; gap: 1.5rem;
-      padding: 1.5rem 0;
-      position: relative;
-    }
-
-    .step-num {
-      width: 48px; height: 48px; flex-shrink: 0;
-      border-radius: 50%;
-      background: var(--bg-0);
-      border: 1px solid var(--amber-border);
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 0.85rem; font-weight: 500;
-      color: var(--amber);
-      position: relative; z-index: 1;
-    }
-
-    .step-content h3 {
-      font-size: 1rem; font-weight: 600;
-      color: var(--text-0); margin-bottom: 0.35rem; padding-top: 0.7rem;
-    }
-
-    .step-content p {
-      font-size: 0.875rem; color: var(--text-2); line-height: 1.6;
-    }
-
-    .step-content code {
-      font-family: 'IBM Plex Mono', monospace;
-      background: rgba(245,158,11,0.1);
-      color: var(--amber-bright);
-      padding: 0.1em 0.35em;
-      border-radius: 4px;
-      font-size: 0.82em;
-    }
-
-    /* ── Features ───────────────────────────────────── */
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 1rem;
-      margin-top: 3rem;
-    }
-
-    .feature-card {
-      background: var(--bg-1);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 1.75rem;
-      transition: border-color 0.2s, transform 0.2s;
-    }
-
-    .feature-card:hover {
-      border-color: var(--amber-border);
-      transform: translateY(-2px);
-    }
-
-    .feature-icon {
-      width: 40px; height: 40px;
-      background: var(--amber-glow);
-      border: 1px solid var(--amber-border);
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.1rem;
-      margin-bottom: 1rem;
-    }
-
-    .feature-card h3 {
-      font-size: 0.95rem; font-weight: 600;
-      color: var(--text-0); margin-bottom: 0.5rem;
-    }
-
-    .feature-card p {
-      font-size: 0.84rem; color: var(--text-2); line-height: 1.6;
-    }
-
-    /* ── Security Model ─────────────────────────────── */
-    .security-split {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 3rem;
-      align-items: center;
-      margin-top: 3rem;
-    }
-
-    .security-diagram {
-      background: var(--bg-1);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 1.5rem;
-      font-family: 'IBM Plex Mono', monospace;
-      font-size: 0.78rem;
-    }
-
-    .diag-row {
-      display: flex; align-items: center; gap: 0.75rem;
-      padding: 0.65rem 0.85rem;
-      border-radius: 8px;
-      margin-bottom: 0.5rem;
-    }
-
-    .diag-row.header {
-      background: var(--bg-2);
-      color: var(--text-3);
-      font-size: 0.7rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    .diag-row.allowed {
-      background: rgba(34,197,94,0.06);
-      border: 1px solid rgba(34,197,94,0.15);
-      color: var(--text-1);
-    }
-
-    .diag-row.blocked {
-      background: rgba(239,68,68,0.06);
-      border: 1px solid rgba(239,68,68,0.15);
-      color: var(--text-2);
-    }
-
-    .diag-app { flex: 1; }
-    .diag-id { color: var(--text-3); flex: 1; font-size: 0.7rem; }
-    .diag-verdict { font-size: 0.7rem; font-weight: 500; }
-    .diag-verdict.allow { color: var(--green); }
-    .diag-verdict.block { color: var(--red); }
-
-    .security-points {
-      display: flex; flex-direction: column; gap: 1.25rem;
-    }
-
-    .security-point {
-      display: flex; gap: 1rem;
-    }
-
-    .sp-icon {
-      width: 32px; height: 32px; flex-shrink: 0;
-      background: var(--amber-glow);
-      border: 1px solid var(--amber-border);
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.9rem;
-    }
-
-    .sp-text h4 {
-      font-size: 0.9rem; font-weight: 600;
-      color: var(--text-0); margin-bottom: 0.3rem;
-    }
-
-    .sp-text p {
-      font-size: 0.82rem; color: var(--text-2); line-height: 1.55;
-    }
-
-    /* ── CTA ────────────────────────────────────────── */
-    .cta-section {
-      padding: 5rem 0;
-      text-align: center;
-    }
-
-    .cta-card {
-      background: var(--bg-1);
-      border: 1px solid var(--amber-border);
-      border-radius: 20px;
-      padding: 4rem 2rem;
-      position: relative;
-      overflow: hidden;
-      max-width: 700px;
-      margin: 0 auto;
-    }
-
-    .cta-card::before {
-      content: '';
-      position: absolute; inset: 0;
-      background: radial-gradient(ellipse 500px 300px at 50% -20%, rgba(245,158,11,0.12), transparent 70%);
-      pointer-events: none;
-    }
-
-    .cta-card h2 {
-      font-size: clamp(1.75rem, 3vw, 2.5rem);
-      font-weight: 700;
-      letter-spacing: -0.025em;
-      margin-bottom: 1rem;
-      position: relative;
-    }
-
-    .cta-card p {
-      color: var(--text-2);
-      font-size: 1rem;
-      line-height: 1.65;
-      margin-bottom: 2rem;
-      max-width: 480px;
-      margin-left: auto; margin-right: auto;
-      position: relative;
-    }
-
-    .cta-actions {
-      display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;
-      position: relative;
-    }
-
-    /* ── Footer ─────────────────────────────────────── */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 2rem 0;
-    }
-
-    .footer-inner {
-      display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 1rem;
-    }
-
-    .footer-left {
-      display: flex; align-items: center; gap: 0.75rem;
-    }
-
-    .footer-logo { font-weight: 700; font-size: 0.95rem; color: var(--text-0); }
-    .footer-sep { color: var(--text-3); }
-
-    footer p {
-      font-size: 0.8rem; color: var(--text-3);
-    }
-
-    .footer-links {
-      display: flex; gap: 1.5rem; list-style: none;
-    }
-
-    .footer-links a {
-      color: var(--text-3); text-decoration: none; font-size: 0.8rem;
-      transition: color 0.2s;
-    }
-    .footer-links a:hover { color: var(--text-1); }
-
-    /* ── Responsive ─────────────────────────────────── */
-    @media (max-width: 700px) {
-      .window-body { grid-template-columns: 1fr; }
-      .sidebar { display: none; }
-      .event-row { grid-template-columns: auto 1fr auto; }
-      .event-caller { display: none; }
-      .security-split { grid-template-columns: 1fr; }
-      .nav-links { display: none; }
-      .footer-inner { flex-direction: column; }
-    }
-  </style>
-</head>
-<body>
-
-<!-- NAV -->
-<nav>
-  <div class="inner">
-    <a class="nav-logo" href="#">
-      <div class="paw">🐕</div>
-      GuardDog
-    </a>
-    <ul class="nav-links">
-      <li><a href="#how">How it works</a></li>
-      <li><a href="#features">Features</a></li>
-      <li><a href="#security">Security</a></li>
-      <li><a href="#download" class="nav-cta">Early Access</a></li>
-    </ul>
-  </div>
-</nav>
-
-<!-- HERO -->
-<section class="hero">
-  <div class="hero-glow"></div>
-  <div class="container">
-    <div class="hero-badge">
-      <span class="dot"></span>
-      macOS · Endpoint Security Framework
-    </div>
-    <h1>
-      <span class="accent">Guard</span> your AI tools<br />from unauthorized callers
-    </h1>
-    <p class="hero-sub">
-      GuardDog intercepts every exec call at the OS level and blocks any app you haven't explicitly trusted from running your AI CLI tools.
-    </p>
-    <div class="hero-actions">
-      <a href="#download" class="btn-primary">
-        Request Early Access
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </a>
-      <a href="#how" class="btn-secondary">
-        See how it works
-      </a>
-    </div>
-    <div class="hero-platform">
-      <span class="platform-badge">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-        macOS 13+
-      </span>
-      <span style="color: var(--text-3)">·</span>
-      <span class="platform-badge">Apple Silicon &amp; Intel</span>
-    </div>
-  </div>
-</section>
-
-<!-- UI DEMO -->
-<section class="demo-wrap">
-  <div class="container">
-    <div class="demo-window">
-      <div class="window-bar">
-        <div class="window-dot close"></div>
-        <div class="window-dot min"></div>
-        <div class="window-dot max"></div>
-        <span class="window-title">GuardDog — Activity Log</span>
-      </div>
-      <div class="window-body">
-        <div class="sidebar">
-          <div class="sidebar-label">Protected Tools</div>
-          <div class="sidebar-item active">
-            <span class="icon">🤖</span> claude
-          </div>
-          <div class="sidebar-item">
-            <span class="icon">⚡</span> openai
-          </div>
-          <div class="sidebar-item">
-            <span class="icon">🔮</span> gemini
-          </div>
-          <div style="height: 1px; background: var(--border); margin: 0.75rem 0;"></div>
-          <div class="sidebar-label">Settings</div>
-          <div class="sidebar-item">
-            <span class="icon">⚙️</span> Policies
-          </div>
-          <div class="sidebar-item">
-            <span class="icon">📋</span> Events
-          </div>
-        </div>
-        <div class="main-panel">
-          <div class="panel-header">
-            <span class="panel-title">Recent Events — /usr/local/bin/claude</span>
-            <span class="live-badge"><span class="dot"></span> LIVE</span>
-          </div>
-          <div class="event-list">
-            <div class="event-row">
-              <span class="verdict allow">✓ allow</span>
-              <span class="event-cli">claude</span>
-              <span class="event-caller">Terminal.app</span>
-              <span class="event-time">just now</span>
-            </div>
-            <div class="event-row">
-              <span class="verdict allow">✓ allow</span>
-              <span class="event-cli">claude</span>
-              <span class="event-caller">Cursor.app</span>
-              <span class="event-time">12s ago</span>
-            </div>
-            <div class="event-row">
-              <span class="verdict block">✗ block</span>
-              <span class="event-cli">claude</span>
-              <span class="event-caller">com.unknown.agent</span>
-              <span class="event-time">34s ago</span>
-            </div>
-            <div class="event-row">
-              <span class="verdict block">✗ block</span>
-              <span class="event-cli">claude</span>
-              <span class="event-caller">sh (via cron)</span>
-              <span class="event-time">1m ago</span>
-            </div>
-            <div class="event-row">
-              <span class="verdict allow">✓ allow</span>
-              <span class="event-cli">claude</span>
-              <span class="event-caller">VS Code.app</span>
-              <span class="event-time">3m ago</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- PROBLEM -->
-<section class="section" id="problem">
-  <div class="container">
-    <div class="section-label">The problem</div>
-    <h2 class="section-title">Any process on your Mac can call<br />your AI CLI tools — by default</h2>
-    <p class="section-sub">
-      Once <code style="font-family:'IBM Plex Mono',monospace;background:rgba(245,158,11,0.1);color:var(--amber-bright);padding:0.1em 0.35em;border-radius:4px;font-size:0.9em">claude</code> or any other AI CLI is installed, nothing stops a rogue script, a malicious package, or an automated agent from calling it on your behalf — silently, without your knowledge.
-    </p>
-    <div class="problem-grid">
-      <div class="problem-card">
-        <div class="icon-wrap">🕵️</div>
-        <h3>Supply-chain scripts</h3>
-        <p>A compromised npm package or shell script can exec your AI CLI and exfiltrate context, query sensitive APIs, or drain API quota without triggering obvious alerts.</p>
-      </div>
-      <div class="problem-card">
-        <div class="icon-wrap">🤖</div>
-        <h3>Runaway agents</h3>
-        <p>Agentic workflows can loop, branch, or escape their sandbox. Without execution controls, one badly-scoped agent can spawn thousands of unintended AI calls.</p>
-      </div>
-      <div class="problem-card">
-        <div class="icon-wrap">🔓</div>
-        <h3>No OS-level enforcement</h3>
-        <p>Prompt-level instructions and API keys are weak gates. They sit outside the operating system and can be bypassed by any process that can see your <code style="font-family:'IBM Plex Mono',monospace;color:var(--text-1)">$PATH</code>.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- HOW IT WORKS -->
-<section class="section how-bg" id="how">
-  <div class="container">
-    <div class="section-label">How it works</div>
-    <h2 class="section-title">OS-level interception, zero latency</h2>
-    <p class="section-sub">
-      GuardDog uses Apple's Endpoint Security framework to sit inline on every <code style="font-family:'IBM Plex Mono',monospace;background:rgba(245,158,11,0.1);color:var(--amber-bright);padding:0.1em 0.35em;border-radius:4px;font-size:0.9em">exec</code> syscall — before the process ever runs.
-    </p>
-
-    <div class="flow" style="max-width:620px">
-      <div class="flow-step">
-        <div class="step-num">01</div>
-        <div class="step-content">
-          <h3>You define a policy</h3>
-          <p>Add a CLI binary to GuardDog (e.g. <code>/usr/local/bin/claude</code>) and specify exactly which apps are allowed to call it — by bundle ID and code-signing identity.</p>
-        </div>
-      </div>
-      <div class="flow-step">
-        <div class="step-num">02</div>
-        <div class="step-content">
-          <h3>Any exec attempt is intercepted</h3>
-          <p>GuardDog's Endpoint Security extension receives an <code>AUTH_EXEC</code> event <em>before</em> the process starts. The kernel waits for GuardDog's verdict.</p>
-        </div>
-      </div>
-      <div class="flow-step">
-        <div class="step-num">03</div>
-        <div class="step-content">
-          <h3>Identity is verified</h3>
-          <p>The policy engine resolves the caller's bundle ID and Team ID from its code-signing certificate — not just its path or name, which can be spoofed.</p>
-        </div>
-      </div>
-      <div class="flow-step">
-        <div class="step-num">04</div>
-        <div class="step-content">
-          <h3>Allow or block — instantly</h3>
-          <p>Callers on your allowlist proceed normally. Everything else is denied before a single byte of the CLI runs. The decision is logged with full context.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- FEATURES -->
-<section class="section" id="features">
-  <div class="container">
-    <div class="section-label">Features</div>
-    <h2 class="section-title">Everything you need to lock down<br />AI tool execution</h2>
-    <div class="features-grid">
-      <div class="feature-card">
-        <div class="feature-icon">🛡️</div>
-        <h3>Kernel-level enforcement</h3>
-        <p>Blocks execute at the macOS kernel boundary using the Endpoint Security framework — the same layer used by leading EDR products.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🔏</div>
-        <h3>Code-signing identity matching</h3>
-        <p>Allowlist entries are matched on Team ID and bundle ID from the caller's code signature — not spoofable process names or paths.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">📋</div>
-        <h3>Real-time activity log</h3>
-        <p>Every exec attempt is logged with the target CLI, caller identity, verdict, and matched rule. Spot anomalies before they become incidents.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">⚡</div>
-        <h3>Zero-overhead allowpath</h3>
-        <p>Trusted callers are evaluated in microseconds. GuardDog adds no measurable latency to your normal Terminal or IDE workflow.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🎛️</div>
-        <h3>Native SwiftUI interface</h3>
-        <p>Manage protected tools and allowlists through a clean, native macOS app — no configuration files, no CLI administration required.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🔌</div>
-        <h3>Protect any CLI binary</h3>
-        <p>GuardDog works with any executable — <code style="font-family:'IBM Plex Mono',monospace;color:var(--amber-bright)">claude</code>, <code style="font-family:'IBM Plex Mono',monospace;color:var(--amber-bright)">openai</code>, <code style="font-family:'IBM Plex Mono',monospace;color:var(--amber-bright)">gemini</code>, or custom internal tools. No code changes needed in the protected binary.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- SECURITY MODEL -->
-<section class="section how-bg" id="security">
-  <div class="container">
-    <div class="section-label">Security model</div>
-    <h2 class="section-title">Block by default. Allow explicitly.</h2>
-    <div class="security-split">
-      <div class="security-diagram">
-        <div class="diag-row header">
-          <span class="diag-app">Caller</span>
-          <span class="diag-id">Identity</span>
-          <span class="diag-verdict">Verdict</span>
-        </div>
-        <div class="diag-row allowed">
-          <span class="diag-app">Terminal.app</span>
-          <span class="diag-id">com.apple.Terminal</span>
-          <span class="diag-verdict allow">✓ allow</span>
-        </div>
-        <div class="diag-row allowed">
-          <span class="diag-app">Cursor.app</span>
-          <span class="diag-id">com.todesktop.cursor</span>
-          <span class="diag-verdict allow">✓ allow</span>
-        </div>
-        <div class="diag-row blocked">
-          <span class="diag-app">python3</span>
-          <span class="diag-id">(no bundle ID)</span>
-          <span class="diag-verdict block">✗ block</span>
-        </div>
-        <div class="diag-row blocked">
-          <span class="diag-app">unknown-agent</span>
-          <span class="diag-id">unrecognized Team ID</span>
-          <span class="diag-verdict block">✗ block</span>
-        </div>
-        <div class="diag-row blocked">
-          <span class="diag-app">curl (via cron)</span>
-          <span class="diag-id">not on allowlist</span>
-          <span class="diag-verdict block">✗ block</span>
-        </div>
-      </div>
-      <div class="security-points">
-        <div class="security-point">
-          <div class="sp-icon">🚫</div>
-          <div class="sp-text">
-            <h4>Default deny</h4>
-            <p>Once a CLI is protected, every caller not explicitly listed is blocked. You opt <em>in</em> to trust, not out of it.</p>
-          </div>
-        </div>
-        <div class="security-point">
-          <div class="sp-icon">🔑</div>
-          <div class="sp-text">
-            <h4>Signing-identity verification</h4>
-            <p>Matching on code-signing identity means an attacker can't bypass your allowlist by renaming a binary or faking a bundle ID at runtime.</p>
-          </div>
-        </div>
-        <div class="security-point">
-          <div class="sp-icon">🏠</div>
-          <div class="sp-text">
-            <h4>Fully local — no cloud required</h4>
-            <p>Policies are stored on-device. GuardDog never sends your rules, exec events, or identities to any external server.</p>
-          </div>
-        </div>
-        <div class="security-point">
-          <div class="sp-icon">🍎</div>
-          <div class="sp-text">
-            <h4>Built on Apple's security stack</h4>
-            <p>GuardDog runs as an Apple-notarized system extension with the Endpoint Security entitlement — the same mechanism used by leading security vendors.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- CTA -->
-<section class="cta-section" id="download">
-  <div class="container">
-    <div class="cta-card">
-      <h2>Ready to guard your AI tools?</h2>
-      <p>GuardDog is in early access for macOS. Join the waitlist to be notified when it's ready to install.</p>
-      <div class="cta-actions">
-        <a href="mailto:hello@ovld.ai?subject=GuardDog Early Access" class="btn-primary">
-          Join the waitlist
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GuardDog — Protect Your AI CLI Tools</title>
+    <meta
+      name="description"
+      content="GuardDog controls which macOS apps can execute your AI CLI tools. Block unauthorized callers at the OS level using Apple's Endpoint Security framework."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg-0: #060709;
+        --bg-1: #0b0d12;
+        --bg-2: #111318;
+        --bg-3: #181b22;
+        --amber-dim: #92600a;
+        --amber: #f59e0b;
+        --amber-bright: #fbbf24;
+        --amber-glow: rgba(245, 158, 11, 0.18);
+        --amber-border: rgba(245, 158, 11, 0.22);
+        --orange: #fb923c;
+        --green: #22c55e;
+        --green-dim: rgba(34, 197, 94, 0.15);
+        --red: #ef4444;
+        --red-dim: rgba(239, 68, 68, 0.15);
+        --text-0: #f8fafc;
+        --text-1: #cbd5e1;
+        --text-2: #94a3b8;
+        --text-3: #64748b;
+        --border: rgba(255, 255, 255, 0.08);
+        --border-hover: rgba(255, 255, 255, 0.14);
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        font-family: "Space Grotesk", sans-serif;
+        background: var(--bg-0);
+        color: var(--text-0);
+        min-height: 100vh;
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* ── Layout ─────────────────────────────────────── */
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+      }
+      .container-wide {
+        max-width: 1300px;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+      }
+
+      /* ── Nav ────────────────────────────────────────── */
+      nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 50;
+        background: rgba(6, 7, 9, 0.8);
+        backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--border);
+      }
+
+      nav .inner {
+        max-width: 1100px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 1.5rem;
+        height: 60px;
+      }
+
+      .nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: var(--text-0);
+        text-decoration: none;
+      }
+
+      .nav-logo .paw {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, var(--amber), var(--orange));
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1.75rem;
+        list-style: none;
+      }
+
+      .nav-links a {
+        color: var(--text-2);
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: color 0.2s;
+      }
+      .nav-links a:hover {
+        color: var(--text-0);
+      }
+
+      .nav-cta {
+        background: var(--amber);
+        color: #000 !important;
+        padding: 0.45rem 1rem;
+        border-radius: 8px;
+        font-weight: 600 !important;
+        font-size: 0.85rem !important;
+        transition: background 0.2s !important;
+      }
+      .nav-cta:hover {
+        background: var(--amber-bright) !important;
+      }
+
+      /* ── Hero ───────────────────────────────────────── */
+      .hero {
+        padding: 9rem 0 6rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .hero-glow {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: radial-gradient(
+          ellipse 800px 500px at 50% 20%,
+          rgba(245, 158, 11, 0.1) 0%,
+          transparent 70%
+        );
+      }
+
+      .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(245, 158, 11, 0.08);
+        border: 1px solid var(--amber-border);
+        border-radius: 999px;
+        padding: 0.35rem 1rem;
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: var(--amber-bright);
+        margin-bottom: 2rem;
+        font-family: "IBM Plex Mono", monospace;
+        letter-spacing: 0.02em;
+      }
+
+      .hero-badge .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--amber);
+        flex-shrink: 0;
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
+      }
+
+      .hero h1 {
+        font-size: clamp(2.8rem, 6vw, 5rem);
+        font-weight: 700;
+        line-height: 1.08;
+        letter-spacing: -0.03em;
+        margin-bottom: 1.5rem;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .hero h1 .accent {
+        background: linear-gradient(90deg, var(--amber), var(--orange));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .hero-sub {
+        font-size: 1.15rem;
+        color: var(--text-2);
+        max-width: 560px;
+        margin: 0 auto 2.5rem;
+        line-height: 1.65;
+        font-weight: 400;
+      }
+
+      .hero-actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .btn-primary {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: var(--amber);
+        color: #000;
+        font-weight: 600;
+        font-size: 0.95rem;
+        padding: 0.75rem 1.75rem;
+        border-radius: 10px;
+        text-decoration: none;
+        transition:
+          background 0.2s,
+          transform 0.15s;
+      }
+      .btn-primary:hover {
+        background: var(--amber-bright);
+        transform: translateY(-1px);
+      }
+
+      .btn-secondary {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: transparent;
+        color: var(--text-1);
+        font-weight: 500;
+        font-size: 0.95rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 10px;
+        border: 1px solid var(--border-hover);
+        text-decoration: none;
+        transition:
+          border-color 0.2s,
+          color 0.2s,
+          transform 0.15s;
+      }
+      .btn-secondary:hover {
+        border-color: var(--amber-border);
+        color: var(--text-0);
+        transform: translateY(-1px);
+      }
+
+      .hero-platform {
+        margin-top: 3rem;
+        color: var(--text-3);
+        font-size: 0.8rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+      }
+
+      .platform-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.25rem 0.65rem;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 0.75rem;
+        color: var(--text-2);
+        font-family: "IBM Plex Mono", monospace;
+      }
+
+      /* ── UI Demo / Event Log ────────────────────────── */
+      .demo-wrap {
+        padding: 2rem 0 5rem;
+      }
+
+      .demo-window {
+        background: var(--bg-1);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+        max-width: 860px;
+        margin: 0 auto;
+        box-shadow:
+          0 0 0 1px var(--border),
+          0 40px 100px -30px rgba(0, 0, 0, 0.7),
+          0 0 80px -20px rgba(245, 158, 11, 0.08);
+      }
+
+      .window-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.85rem 1.25rem;
+        background: var(--bg-2);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .window-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+      }
+      .window-dot.close {
+        background: #ff5f57;
+      }
+      .window-dot.min {
+        background: #febc2e;
+      }
+      .window-dot.max {
+        background: #28c840;
+      }
+
+      .window-title {
+        flex: 1;
+        text-align: center;
+        font-size: 0.78rem;
+        font-weight: 500;
+        color: var(--text-3);
+        font-family: "IBM Plex Mono", monospace;
+      }
+
+      .window-body {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+      }
+
+      .sidebar {
+        border-right: 1px solid var(--border);
+        padding: 1rem 0;
+      }
+
+      .sidebar-label {
+        font-size: 0.65rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-3);
+        padding: 0 1rem 0.5rem;
+      }
+
+      .sidebar-item {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.55rem 1rem;
+        font-size: 0.82rem;
+        color: var(--text-2);
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+
+      .sidebar-item.active {
+        background: rgba(245, 158, 11, 0.07);
+        color: var(--amber-bright);
+      }
+
+      .sidebar-item .icon {
+        font-size: 0.95rem;
+      }
+
+      .main-panel {
+        padding: 1.25rem;
+      }
+
+      .panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+      }
+
+      .panel-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-0);
+      }
+
+      .live-badge {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.7rem;
+        font-family: "IBM Plex Mono", monospace;
+        color: var(--green);
+        background: var(--green-dim);
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+      }
+      .live-badge .dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--green);
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      .event-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .event-row {
+        display: grid;
+        grid-template-columns: auto 1fr 1fr auto;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.65rem 0.85rem;
+        background: var(--bg-2);
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        font-size: 0.78rem;
+      }
+
+      .verdict {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.2rem 0.55rem;
+        border-radius: 6px;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.7rem;
+        font-weight: 500;
+      }
+      .verdict.allow {
+        background: var(--green-dim);
+        color: var(--green);
+      }
+      .verdict.block {
+        background: var(--red-dim);
+        color: var(--red);
+      }
+
+      .event-cli {
+        color: var(--amber-bright);
+        font-family: "IBM Plex Mono", monospace;
+      }
+      .event-caller {
+        color: var(--text-1);
+      }
+      .event-time {
+        color: var(--text-3);
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.7rem;
+      }
+
+      /* ── Problem ────────────────────────────────────── */
+      .section {
+        padding: 5rem 0;
+      }
+
+      .section-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--amber);
+        margin-bottom: 0.75rem;
+        font-family: "IBM Plex Mono", monospace;
+      }
+
+      .section-title {
+        font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+        font-weight: 700;
+        letter-spacing: -0.025em;
+        line-height: 1.15;
+        margin-bottom: 1rem;
+      }
+
+      .section-sub {
+        font-size: 1.05rem;
+        color: var(--text-2);
+        line-height: 1.65;
+        max-width: 560px;
+      }
+
+      .problem-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1px;
+        background: var(--border);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+        margin-top: 3rem;
+      }
+
+      .problem-card {
+        background: var(--bg-1);
+        padding: 2rem;
+      }
+
+      .problem-card .icon-wrap {
+        width: 44px;
+        height: 44px;
+        background: rgba(239, 68, 68, 0.12);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        margin-bottom: 1rem;
+      }
+
+      .problem-card h3 {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--text-0);
+        margin-bottom: 0.5rem;
+      }
+
+      .problem-card p {
+        font-size: 0.85rem;
+        color: var(--text-2);
+        line-height: 1.6;
+      }
+
+      /* ── How It Works ───────────────────────────────── */
+      .how-bg {
+        background: var(--bg-1);
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .flow {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        margin-top: 3rem;
+        position: relative;
+      }
+
+      .flow::before {
+        content: "";
+        position: absolute;
+        left: 24px;
+        top: 0;
+        bottom: 0;
+        width: 1px;
+        background: linear-gradient(
+          to bottom,
+          transparent,
+          var(--amber-border) 10%,
+          var(--amber-border) 90%,
+          transparent
+        );
+      }
+
+      .flow-step {
+        display: flex;
+        align-items: flex-start;
+        gap: 1.5rem;
+        padding: 1.5rem 0;
+        position: relative;
+      }
+
+      .step-num {
+        width: 48px;
+        height: 48px;
+        flex-shrink: 0;
+        border-radius: 50%;
+        background: var(--bg-0);
+        border: 1px solid var(--amber-border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--amber);
+        position: relative;
+        z-index: 1;
+      }
+
+      .step-content h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-0);
+        margin-bottom: 0.35rem;
+        padding-top: 0.7rem;
+      }
+
+      .step-content p {
+        font-size: 0.875rem;
+        color: var(--text-2);
+        line-height: 1.6;
+      }
+
+      .step-content code {
+        font-family: "IBM Plex Mono", monospace;
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--amber-bright);
+        padding: 0.1em 0.35em;
+        border-radius: 4px;
+        font-size: 0.82em;
+      }
+
+      /* ── Features ───────────────────────────────────── */
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1rem;
+        margin-top: 3rem;
+      }
+
+      .feature-card {
+        background: var(--bg-1);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1.75rem;
+        transition:
+          border-color 0.2s,
+          transform 0.2s;
+      }
+
+      .feature-card:hover {
+        border-color: var(--amber-border);
+        transform: translateY(-2px);
+      }
+
+      .feature-icon {
+        width: 40px;
+        height: 40px;
+        background: var(--amber-glow);
+        border: 1px solid var(--amber-border);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+      }
+
+      .feature-card h3 {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--text-0);
+        margin-bottom: 0.5rem;
+      }
+
+      .feature-card p {
+        font-size: 0.84rem;
+        color: var(--text-2);
+        line-height: 1.6;
+      }
+
+      /* ── Security Model ─────────────────────────────── */
+      .security-split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3rem;
+        align-items: center;
+        margin-top: 3rem;
+      }
+
+      .security-diagram {
+        background: var(--bg-1);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.5rem;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.78rem;
+      }
+
+      .diag-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.65rem 0.85rem;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+      }
+
+      .diag-row.header {
+        background: var(--bg-2);
+        color: var(--text-3);
+        font-size: 0.7rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .diag-row.allowed {
+        background: rgba(34, 197, 94, 0.06);
+        border: 1px solid rgba(34, 197, 94, 0.15);
+        color: var(--text-1);
+      }
+
+      .diag-row.blocked {
+        background: rgba(239, 68, 68, 0.06);
+        border: 1px solid rgba(239, 68, 68, 0.15);
+        color: var(--text-2);
+      }
+
+      .diag-app {
+        flex: 1;
+      }
+      .diag-id {
+        color: var(--text-3);
+        flex: 1;
+        font-size: 0.7rem;
+      }
+      .diag-verdict {
+        font-size: 0.7rem;
+        font-weight: 500;
+      }
+      .diag-verdict.allow {
+        color: var(--green);
+      }
+      .diag-verdict.block {
+        color: var(--red);
+      }
+
+      .security-points {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+      }
+
+      .security-point {
+        display: flex;
+        gap: 1rem;
+      }
+
+      .sp-icon {
+        width: 32px;
+        height: 32px;
+        flex-shrink: 0;
+        background: var(--amber-glow);
+        border: 1px solid var(--amber-border);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+      }
+
+      .sp-text h4 {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-0);
+        margin-bottom: 0.3rem;
+      }
+
+      .sp-text p {
+        font-size: 0.82rem;
+        color: var(--text-2);
+        line-height: 1.55;
+      }
+
+      /* ── CTA ────────────────────────────────────────── */
+      .cta-section {
+        padding: 5rem 0;
+        text-align: center;
+      }
+
+      .cta-card {
+        background: var(--bg-1);
+        border: 1px solid var(--amber-border);
+        border-radius: 20px;
+        padding: 4rem 2rem;
+        position: relative;
+        overflow: hidden;
+        max-width: 700px;
+        margin: 0 auto;
+      }
+
+      .cta-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 500px 300px at 50% -20%,
+          rgba(245, 158, 11, 0.12),
+          transparent 70%
+        );
+        pointer-events: none;
+      }
+
+      .cta-card h2 {
+        font-size: clamp(1.75rem, 3vw, 2.5rem);
+        font-weight: 700;
+        letter-spacing: -0.025em;
+        margin-bottom: 1rem;
+        position: relative;
+      }
+
+      .cta-card p {
+        color: var(--text-2);
+        font-size: 1rem;
+        line-height: 1.65;
+        margin-bottom: 2rem;
+        max-width: 480px;
+        margin-left: auto;
+        margin-right: auto;
+        position: relative;
+      }
+
+      .cta-actions {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+        position: relative;
+      }
+
+      /* ── Footer ─────────────────────────────────────── */
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 2rem 0;
+      }
+
+      .footer-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+
+      .footer-left {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .footer-logo {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: var(--text-0);
+      }
+      .footer-sep {
+        color: var(--text-3);
+      }
+
+      footer p {
+        font-size: 0.8rem;
+        color: var(--text-3);
+      }
+
+      .footer-links {
+        display: flex;
+        gap: 1.5rem;
+        list-style: none;
+      }
+
+      .footer-links a {
+        color: var(--text-3);
+        text-decoration: none;
+        font-size: 0.8rem;
+        transition: color 0.2s;
+      }
+      .footer-links a:hover {
+        color: var(--text-1);
+      }
+
+      /* ── Responsive ─────────────────────────────────── */
+      @media (max-width: 700px) {
+        .window-body {
+          grid-template-columns: 1fr;
+        }
+        .sidebar {
+          display: none;
+        }
+        .event-row {
+          grid-template-columns: auto 1fr auto;
+        }
+        .event-caller {
+          display: none;
+        }
+        .security-split {
+          grid-template-columns: 1fr;
+        }
+        .nav-links {
+          display: none;
+        }
+        .footer-inner {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- NAV -->
+    <nav>
+      <div class="inner">
+        <a class="nav-logo" href="#">
+          <div class="paw">🐕</div>
+          GuardDog
         </a>
-        <a href="https://github.com" class="btn-secondary">
-          View on GitHub
-        </a>
+        <ul class="nav-links">
+          <li><a href="#how">How it works</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#security">Security</a></li>
+          <li><a href="#download" class="nav-cta">Early Access</a></li>
+        </ul>
       </div>
-    </div>
-  </div>
-</section>
+    </nav>
 
-<!-- FOOTER -->
-<footer>
-  <div class="container">
-    <div class="footer-inner">
-      <div class="footer-left">
-        <span class="footer-logo">🐕 GuardDog</span>
-        <span class="footer-sep">·</span>
-        <p>by <a href="https://ovld.ai" style="color:var(--text-2);text-decoration:none">ovld.ai</a></p>
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-glow"></div>
+      <div class="container">
+        <div class="hero-badge">
+          <span class="dot"></span>
+          macOS · Endpoint Security Framework
+        </div>
+        <h1>
+          <span class="accent">Guard</span> your AI tools<br />from unauthorized
+          callers
+        </h1>
+        <p class="hero-sub">
+          GuardDog intercepts every exec call at the OS level and blocks any app
+          you haven't explicitly trusted from running your AI CLI tools.
+        </p>
+        <div class="hero-actions">
+          <a href="#download" class="btn-primary">
+            Request Early Access
+            <svg
+              width="14"
+              height="14"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              viewBox="0 0 24 24"
+            >
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </a>
+          <a href="#how" class="btn-secondary"> See how it works </a>
+        </div>
+        <div class="hero-platform">
+          <span class="platform-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"
+              />
+            </svg>
+            macOS 13+
+          </span>
+          <span style="color: var(--text-3)">·</span>
+          <span class="platform-badge">Apple Silicon &amp; Intel</span>
+        </div>
       </div>
-      <ul class="footer-links">
-        <li><a href="#how">How it works</a></li>
-        <li><a href="#features">Features</a></li>
-        <li><a href="#security">Security</a></li>
-        <li><a href="mailto:hello@ovld.ai">Contact</a></li>
-      </ul>
-    </div>
-  </div>
-</footer>
+    </section>
 
-</body>
+    <!-- UI DEMO -->
+    <section class="demo-wrap">
+      <div class="container">
+        <div class="demo-window">
+          <div class="window-bar">
+            <div class="window-dot close"></div>
+            <div class="window-dot min"></div>
+            <div class="window-dot max"></div>
+            <span class="window-title">GuardDog — Activity Log</span>
+          </div>
+          <div class="window-body">
+            <div class="sidebar">
+              <div class="sidebar-label">Protected Tools</div>
+              <div class="sidebar-item active">
+                <span class="icon">🤖</span> claude
+              </div>
+              <div class="sidebar-item">
+                <span class="icon">⚡</span> openai
+              </div>
+              <div class="sidebar-item">
+                <span class="icon">🔮</span> gemini
+              </div>
+              <div
+                style="
+                  height: 1px;
+                  background: var(--border);
+                  margin: 0.75rem 0;
+                "
+              ></div>
+              <div class="sidebar-label">Settings</div>
+              <div class="sidebar-item">
+                <span class="icon">⚙️</span> Policies
+              </div>
+              <div class="sidebar-item">
+                <span class="icon">📋</span> Events
+              </div>
+            </div>
+            <div class="main-panel">
+              <div class="panel-header">
+                <span class="panel-title"
+                  >Recent Events — /usr/local/bin/claude</span
+                >
+                <span class="live-badge"><span class="dot"></span> LIVE</span>
+              </div>
+              <div class="event-list">
+                <div class="event-row">
+                  <span class="verdict allow">✓ allow</span>
+                  <span class="event-cli">claude</span>
+                  <span class="event-caller">Terminal.app</span>
+                  <span class="event-time">just now</span>
+                </div>
+                <div class="event-row">
+                  <span class="verdict allow">✓ allow</span>
+                  <span class="event-cli">claude</span>
+                  <span class="event-caller">Cursor.app</span>
+                  <span class="event-time">12s ago</span>
+                </div>
+                <div class="event-row">
+                  <span class="verdict block">✗ block</span>
+                  <span class="event-cli">claude</span>
+                  <span class="event-caller">com.unknown.agent</span>
+                  <span class="event-time">34s ago</span>
+                </div>
+                <div class="event-row">
+                  <span class="verdict block">✗ block</span>
+                  <span class="event-cli">claude</span>
+                  <span class="event-caller">sh (via cron)</span>
+                  <span class="event-time">1m ago</span>
+                </div>
+                <div class="event-row">
+                  <span class="verdict allow">✓ allow</span>
+                  <span class="event-cli">claude</span>
+                  <span class="event-caller">VS Code.app</span>
+                  <span class="event-time">3m ago</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROBLEM -->
+    <section class="section" id="problem">
+      <div class="container">
+        <div class="section-label">The problem</div>
+        <h2 class="section-title">
+          Any process on your Mac can call<br />your AI CLI tools — by default
+        </h2>
+        <p class="section-sub">
+          Once
+          <code
+            style="
+              font-family: &quot;IBM Plex Mono&quot;, monospace;
+              background: rgba(245, 158, 11, 0.1);
+              color: var(--amber-bright);
+              padding: 0.1em 0.35em;
+              border-radius: 4px;
+              font-size: 0.9em;
+            "
+            >claude</code
+          >
+          or any other AI CLI is installed, nothing stops a rogue script, a
+          malicious package, or an automated agent from calling it on your
+          behalf — silently, without your knowledge.
+        </p>
+        <div class="problem-grid">
+          <div class="problem-card">
+            <div class="icon-wrap">🕵️</div>
+            <h3>Supply-chain scripts</h3>
+            <p>
+              A compromised npm package or shell script can exec your AI CLI and
+              exfiltrate context, query sensitive APIs, or drain API quota
+              without triggering obvious alerts.
+            </p>
+          </div>
+          <div class="problem-card">
+            <div class="icon-wrap">🤖</div>
+            <h3>Runaway agents</h3>
+            <p>
+              Agentic workflows can loop, branch, or escape their sandbox.
+              Without execution controls, one badly-scoped agent can spawn
+              thousands of unintended AI calls.
+            </p>
+          </div>
+          <div class="problem-card">
+            <div class="icon-wrap">🔓</div>
+            <h3>No OS-level enforcement</h3>
+            <p>
+              Prompt-level instructions and API keys are weak gates. They sit
+              outside the operating system and can be bypassed by any process
+              that can see your
+              <code
+                style="
+                  font-family: &quot;IBM Plex Mono&quot;, monospace;
+                  color: var(--text-1);
+                "
+                >$PATH</code
+              >.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="section how-bg" id="how">
+      <div class="container">
+        <div class="section-label">How it works</div>
+        <h2 class="section-title">OS-level interception, zero latency</h2>
+        <p class="section-sub">
+          GuardDog uses Apple's Endpoint Security framework to sit inline on
+          every
+          <code
+            style="
+              font-family: &quot;IBM Plex Mono&quot;, monospace;
+              background: rgba(245, 158, 11, 0.1);
+              color: var(--amber-bright);
+              padding: 0.1em 0.35em;
+              border-radius: 4px;
+              font-size: 0.9em;
+            "
+            >exec</code
+          >
+          syscall — before the process ever runs.
+        </p>
+
+        <div class="flow" style="max-width: 620px">
+          <div class="flow-step">
+            <div class="step-num">01</div>
+            <div class="step-content">
+              <h3>You define a policy</h3>
+              <p>
+                Add a CLI binary to GuardDog (e.g.
+                <code>/usr/local/bin/claude</code>) and specify exactly which
+                apps are allowed to call it — by bundle ID and code-signing
+                identity.
+              </p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">02</div>
+            <div class="step-content">
+              <h3>Any exec attempt is intercepted</h3>
+              <p>
+                GuardDog's Endpoint Security extension receives an
+                <code>AUTH_EXEC</code> event <em>before</em> the process starts.
+                The kernel waits for GuardDog's verdict.
+              </p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">03</div>
+            <div class="step-content">
+              <h3>Identity is verified</h3>
+              <p>
+                The policy engine resolves the caller's bundle ID and Team ID
+                from its code-signing certificate — not just its path or name,
+                which can be spoofed.
+              </p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="step-num">04</div>
+            <div class="step-content">
+              <h3>Allow or block — instantly</h3>
+              <p>
+                Callers on your allowlist proceed normally. Everything else is
+                denied before a single byte of the CLI runs. The decision is
+                logged with full context.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="section" id="features">
+      <div class="container">
+        <div class="section-label">Features</div>
+        <h2 class="section-title">
+          Everything you need to lock down<br />AI tool execution
+        </h2>
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon">🛡️</div>
+            <h3>Kernel-level enforcement</h3>
+            <p>
+              Blocks execute at the macOS kernel boundary using the Endpoint
+              Security framework — the same layer used by leading EDR products.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🔏</div>
+            <h3>Code-signing identity matching</h3>
+            <p>
+              Allowlist entries are matched on Team ID and bundle ID from the
+              caller's code signature — not spoofable process names or paths.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">📋</div>
+            <h3>Real-time activity log</h3>
+            <p>
+              Every exec attempt is logged with the target CLI, caller identity,
+              verdict, and matched rule. Spot anomalies before they become
+              incidents.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <h3>Zero-overhead allowpath</h3>
+            <p>
+              Trusted callers are evaluated in microseconds. GuardDog adds no
+              measurable latency to your normal Terminal or IDE workflow.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🎛️</div>
+            <h3>Native SwiftUI interface</h3>
+            <p>
+              Manage protected tools and allowlists through a clean, native
+              macOS app — no configuration files, no CLI administration
+              required.
+            </p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🔌</div>
+            <h3>Protect any CLI binary</h3>
+            <p>
+              GuardDog works with any executable —
+              <code
+                style="
+                  font-family: &quot;IBM Plex Mono&quot;, monospace;
+                  color: var(--amber-bright);
+                "
+                >claude</code
+              >,
+              <code
+                style="
+                  font-family: &quot;IBM Plex Mono&quot;, monospace;
+                  color: var(--amber-bright);
+                "
+                >openai</code
+              >,
+              <code
+                style="
+                  font-family: &quot;IBM Plex Mono&quot;, monospace;
+                  color: var(--amber-bright);
+                "
+                >gemini</code
+              >, or custom internal tools. No code changes needed in the
+              protected binary.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECURITY MODEL -->
+    <section class="section how-bg" id="security">
+      <div class="container">
+        <div class="section-label">Security model</div>
+        <h2 class="section-title">Block by default. Allow explicitly.</h2>
+        <div class="security-split">
+          <div class="security-diagram">
+            <div class="diag-row header">
+              <span class="diag-app">Caller</span>
+              <span class="diag-id">Identity</span>
+              <span class="diag-verdict">Verdict</span>
+            </div>
+            <div class="diag-row allowed">
+              <span class="diag-app">Terminal.app</span>
+              <span class="diag-id">com.apple.Terminal</span>
+              <span class="diag-verdict allow">✓ allow</span>
+            </div>
+            <div class="diag-row allowed">
+              <span class="diag-app">Cursor.app</span>
+              <span class="diag-id">com.todesktop.cursor</span>
+              <span class="diag-verdict allow">✓ allow</span>
+            </div>
+            <div class="diag-row blocked">
+              <span class="diag-app">python3</span>
+              <span class="diag-id">(no bundle ID)</span>
+              <span class="diag-verdict block">✗ block</span>
+            </div>
+            <div class="diag-row blocked">
+              <span class="diag-app">unknown-agent</span>
+              <span class="diag-id">unrecognized Team ID</span>
+              <span class="diag-verdict block">✗ block</span>
+            </div>
+            <div class="diag-row blocked">
+              <span class="diag-app">curl (via cron)</span>
+              <span class="diag-id">not on allowlist</span>
+              <span class="diag-verdict block">✗ block</span>
+            </div>
+          </div>
+          <div class="security-points">
+            <div class="security-point">
+              <div class="sp-icon">🚫</div>
+              <div class="sp-text">
+                <h4>Default deny</h4>
+                <p>
+                  Once a CLI is protected, every caller not explicitly listed is
+                  blocked. You opt <em>in</em> to trust, not out of it.
+                </p>
+              </div>
+            </div>
+            <div class="security-point">
+              <div class="sp-icon">🔑</div>
+              <div class="sp-text">
+                <h4>Signing-identity verification</h4>
+                <p>
+                  Matching on code-signing identity means an attacker can't
+                  bypass your allowlist by renaming a binary or faking a bundle
+                  ID at runtime.
+                </p>
+              </div>
+            </div>
+            <div class="security-point">
+              <div class="sp-icon">🏠</div>
+              <div class="sp-text">
+                <h4>Fully local — no cloud required</h4>
+                <p>
+                  Policies are stored on-device. GuardDog never sends your
+                  rules, exec events, or identities to any external server.
+                </p>
+              </div>
+            </div>
+            <div class="security-point">
+              <div class="sp-icon">🍎</div>
+              <div class="sp-text">
+                <h4>Built on Apple's security stack</h4>
+                <p>
+                  GuardDog runs as an Apple-notarized system extension with the
+                  Endpoint Security entitlement — the same mechanism used by
+                  leading security vendors.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section" id="download">
+      <div class="container">
+        <div class="cta-card">
+          <h2>Ready to guard your AI tools?</h2>
+          <p>
+            GuardDog is in early access for macOS. Join the waitlist to be
+            notified when it's ready to install.
+          </p>
+          <div class="cta-actions">
+            <a
+              href="mailto:guarddog@cooperativ.io?subject=GuardDog Early Access"
+              class="btn-primary"
+            >
+              Join the waitlist
+              <svg
+                width="14"
+                height="14"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                viewBox="0 0 24 24"
+              >
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </a>
+            <a href="https://github.com" class="btn-secondary">
+              View on GitHub
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+      <div class="container">
+        <div class="footer-inner">
+          <div class="footer-left">
+            <span class="footer-logo">🐕 GuardDog</span>
+            <span class="footer-sep">·</span>
+            <p>
+              by
+              <a
+                href="https://ovld.ai"
+                style="color: var(--text-2); text-decoration: none"
+                >ovld.ai</a
+              >
+            </p>
+          </div>
+          <ul class="footer-links">
+            <li><a href="#how">How it works</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#security">Security</a></li>
+            <li><a href="mailto:hello@ovld.ai">Contact</a></li>
+          </ul>
+        </div>
+      </div>
+    </footer>
+  </body>
 </html>
